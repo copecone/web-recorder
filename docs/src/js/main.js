@@ -4,7 +4,7 @@ const eventThrottler = () => {
         var running = false
         var func = function() {
             if (running) { return }
-            
+
             running = true;
             window.requestAnimationFrame((timestamp) => {
                 obj.dispatchEvent(new CustomEvent(name))
@@ -46,33 +46,51 @@ if (navigator.mediaDevices || window.MediaStreamTrackProcessor) {
         var canvasVideo = document.createElement('canvas')
         videoContainer.appendChild(canvasVideo)
 
+        navigator.mediaDevices.getUserMedia({video: false, audio: true}).then((stream) => {
+            document.querySelector("#test_stream").srcObject = stream
+        })
+
         navigator.mediaDevices.getDisplayMedia({video: true, audio: true}).then((stream) => {
             const makeProcess = (stream, canvasVideo, videoContainer) => {
                 const processor = new MediaStreamTrackProcessor(stream.getVideoTracks()[0])
                 const reader = processor.readable.getReader()
-                
+                stream.getAudioTracks()
+
+                const ctx = canvasVideo.getContext('2d', { alpha: false })
+                var stopCompute = false
+                var chunkLock = false
+
                 const computeFrame = (timestamp) => {
-                    var ctx = canvasVideo.getContext('2d', { alpha: false })
-                    
                     if (!stream.active) {
                         videoContainer.remove()
                         return
                     }
-                    
+
                     try {
                         readChunk()
-                        
-                        function readChunk() {
-                            reader.read().then(({done, value}) => {
-                                if (value.displayWidth !== canvasVideo.width) { canvasVideo.width = value.displayWidth}
-                                if (value.displayHeight !== canvasVideo.height) { canvasVideo.height = value.displayHeight}
 
-                                ctx.drawImage(value, 0, 0)
-                                value.close()
-                            })
+                        async function readChunk() {
+                            if (!chunkLock) {
+                                chunkLock = true
+                                reader.read().then( ({done, value}) => {
+                                    if (value.displayWidth != canvasVideo.width) { canvasVideo.width = value.displayWidth}
+                                    if (value.displayHeight != canvasVideo.height) { canvasVideo.height = value.displayHeight}
+
+                                    ctx.drawImage(value, 0, 0)
+                                    value.close()
+
+                                    chunkLock = false
+
+                                    if (done) {
+                                        stopCompute = true
+                                    }
+                                })
+                            }
                         }
 
-                        window.requestAnimationFrame(computeFrame)
+                        if (!stopCompute) {
+                            window.requestAnimationFrame(computeFrame)
+                        }
                     } catch (err) {}
                 }
 

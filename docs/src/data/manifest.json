@@ -5,12 +5,12 @@
 
 	"display": "fullscreen",
 	"orientation": "any",
-    
+
 	"icons": [
 		{"src": "/src/image/icon-square-big.webp","sizes": "512x512","type": "image/webp"},
 		{"src": "/src/image/icon-square-big.png","sizes": "512x512","type": "image/png"}
 	],
-	
+
 	"background_color": "#414141",
 	"theme_color": "#414141"
 }
